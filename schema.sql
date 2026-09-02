@@ -67,7 +67,10 @@ CREATE TABLE pedido (
     -- FK hacia Cliente: RESTRICT evita borrar un cliente si este ya posee un historial de pedidos
     CONSTRAINT fk_pedido_cliente FOREIGN KEY (id_cliente)
         REFERENCES cliente (id_cliente)
-        ON DELETE RESTRICT
+        ON DELETE RESTRICT,
+        
+    -- R5: La fecha del pedido no puede ser futura
+    CONSTRAINT chk_pedido_fecha_no_futura CHECK (fecha <= now())
 );
 
 -- 6. Tabla Intermedia Pedido_Producto (Relación N:M)
@@ -99,3 +102,56 @@ CREATE INDEX idx_pedido_cliente ON pedido(id_cliente);
 
 -- Justificación: Acelera el listado de productos activos pertenecientes a una categoría específica para el catálogo web.
 CREATE INDEX idx_producto_categoria_activo ON producto(id_categoria, activo);
+
+-- =============================================================================
+-- 8. Trigger: Validación de ventas en Pedido_Producto (R7 y Control de Stock)
+-- =============================================================================
+-- Función de disparo: se ejecuta en cada INSERT sobre pedido_producto.
+--   - Rechaza la venta de productos dados de baja lógica (activo = FALSE).
+--   - Rechaza la venta si la cantidad supera el stock disponible.
+--   - Descuenta el stock vendido de forma atómica.
+-- FOR UPDATE: bloquea la fila del producto mientras la transacción de la venta
+-- está activa, serializando las ventas concurrentes del mismo producto y
+-- evitando condiciones de carrera (clásico problema de la "doble venta").
+CREATE OR REPLACE FUNCTION fn_validar_venta_pedido_producto() RETURNS TRIGGER AS $$
+DECLARE
+    v_nombre_producto VARCHAR(120);
+    v_activo BOOLEAN;
+    v_stock INT;
+BEGIN
+    -- Lee el producto bloqueando su fila hasta el fin de la transacción
+    SELECT nombre, activo, stock
+      INTO v_nombre_producto, v_activo, v_stock
+      FROM producto
+     WHERE id_producto = NEW.id_producto
+       FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El producto con id % no existe.', NEW.id_producto;
+    END IF;
+
+    -- R7: Impide vender un producto dado de baja lógica
+    IF NOT v_activo THEN
+        RAISE EXCEPTION 'El producto "%" (id %) está dado de baja y no puede venderse.',
+            v_nombre_producto, NEW.id_producto;
+    END IF;
+
+    -- Impide vender más cantidad que el stock disponible
+    IF NEW.cantidad > v_stock THEN
+        RAISE EXCEPTION 'Stock insuficiente del producto "%" (id %): disponible % y se solicitan %.',
+            v_nombre_producto, NEW.id_producto, v_stock, NEW.cantidad;
+    END IF;
+
+    -- Descuenta el stock vendido
+    UPDATE producto
+       SET stock = stock - NEW.cantidad
+     WHERE id_producto = NEW.id_producto;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_pedido_producto_venta
+    BEFORE INSERT ON pedido_producto
+    FOR EACH ROW
+    EXECUTE FUNCTION fn_validar_venta_pedido_producto();
