@@ -1,0 +1,10 @@
+     Role name     |                         Attributes                         
+-------------------+------------------------------------------------------------
+ mant_backup       | 
+ mant_monitor      | 
+   rolname    | rolcanlogin | rolsuper 
+--------------+-------------+----------
+ mant_backup  | t           | f
+ mant_monitor | t           | f
+(2 rows)
+
