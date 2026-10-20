@@ -1,20 +1,42 @@
-=== Fragmento de log del servidor (postgresql-16-main.log), anonimizado ===
-(email real reemplazado por usuario_sintetico_1@anon.local; el resto -- PID,
- timestamps, puerto, usuario de aplicacion, rol -- no identifica a una
- persona y se deja tal cual, siguiendo el mismo criterio que usuario_anon)
+Fragmento de log del servidor PostgreSQL 16 - Parte C (Unidad 5)
+Simulacro de incidente de acceso indebido - log anonimizado antes de
+entregarlo a un asistente de IA, siguiendo el mismo criterio aplicado a
+usuario_anon en la Parte D: los identificadores de origen de red y el
+usuario del sistema operativo se reemplazan por valores sintéticos, aunque
+en este entorno de prueba no aparecían datos reales de personas (las
+sentencias capturadas no incluyen valores de columnas, solo texto de
+sentencias SQL).
+Parámetros usados para esta captura puntual: log_statement='all' (temporal,
+solo para esta prueba; ver nota de Parte B sobre por qué no se deja así de
+forma permanente).
 
-2026-10-20 03:05:43.314 UTC [308] user=[unknown] db=[unknown] host=127.0.0.1 LOG:  connection received: host=127.0.0.1 port=53526
-2026-10-20 03:05:43.330 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 LOG:  connection authenticated: identity="postgres" method=scram-sha-256 (/etc/postgresql/16/main/pg_hba.conf:125)
-2026-10-20 03:05:43.330 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 LOG:  connection authorized: user=postgres database=foodstore_test application_name=psql SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
-2026-10-20 03:05:43.359 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 LOG:  statement: GRANT admin_datos TO app_web;
-2026-10-20 03:05:43.360 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 ERROR:  permission denied to grant role "admin_datos"
-2026-10-20 03:05:43.360 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 DETAIL:  Only roles with the ADMIN option on role "admin_datos" may grant this role.
-2026-10-20 03:05:43.360 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 STATEMENT:  GRANT admin_datos TO app_web;
-2026-10-20 03:05:43.361 UTC [308] user=postgres db=foodstore_test host=127.0.0.1 LOG:  disconnection: session time: 0:00:00.047 user=postgres database=foodstore_test host=127.0.0.1 port=53526
+[ORIGEN_LOCAL] LOG:  connection received: host=ORIGEN_ANONIMIZADO
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  connection authenticated: identity="USUARIO_SISTEMA" method=peer
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  connection authorized: user=USUARIO_SISTEMA database=foodstore_u5 application_name=psql
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: DELETE FROM log_autenticacion;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  disconnection: session time: 0:00:00.017 user=USUARIO_SISTEMA database=foodstore_u5 host=ORIGEN_ANONIMIZADO
+[ORIGEN_LOCAL] LOG:  connection received: host=ORIGEN_ANONIMIZADO
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  connection authorized: user=USUARIO_SISTEMA database=foodstore_u5 application_name=psql
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SELECT fn_autenticar('USUARIO_TEST', 'PASSWORD_OCULTA');
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SELECT fn_autenticar('USUARIO_TEST', 'PASSWORD_OCULTA');
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SELECT fn_autenticar('USUARIO_TEST', 'PASSWORD_OCULTA');
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SELECT fn_autenticar('USUARIO_TEST', 'PASSWORD_OCULTA');
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SET ROLE app_web;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SELECT id_usuario, nombre_usuario, nombre_completo, email, rol, activo, fecha_alta FROM usuario;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: RESET ROLE;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: SET ROLE app_web;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: GRANT admin_datos TO app_web;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 ERROR:  permission denied to grant role "admin_datos"
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 DETAIL:  Only roles with the ADMIN option on role "admin_datos" may grant this role.
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 STATEMENT:  GRANT admin_datos TO app_web;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  statement: RESET ROLE;
+[ORIGEN_LOCAL] USUARIO_SISTEMA@foodstore_u5 LOG:  disconnection: session time: 0:00:00.024 user=USUARIO_SISTEMA database=foodstore_u5 host=ORIGEN_ANONIMIZADO
 
-=== Registro de intentos de autenticacion (tabla intento_login), anonimizado ===
-id_intento|email|exitoso|fecha_hora
-3|usuario_sintetico_1@anon.local|f|2026-10-20 03:05:43.332628+00
-4|usuario_sintetico_1@anon.local|f|2026-10-20 03:05:43.342899+00
-5|usuario_sintetico_1@anon.local|f|2026-10-20 03:05:43.34843+00
-6|usuario_sintetico_1@anon.local|t|2026-10-20 03:05:43.353511+00
+Limitación observada (ver informe_incidente.md, punto 5): todas las
+sentencias -- incluidas las ejecutadas "como" app_web mediante SET ROLE --
+quedan registradas bajo el usuario de conexión real (aquí anonimizado como
+USUARIO_SISTEMA), no bajo app_web. El log nativo de PostgreSQL identifica el
+rol de SESIÓN, no el rol EFECTIVO tras un SET ROLE. En un despliegue real,
+app_web se conectaría directamente con sus propias credenciales (sin pasar
+por SET ROLE desde una cuenta administrativa), y esta ambigüedad no
+existiría.

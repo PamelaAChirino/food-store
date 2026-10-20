@@ -1,95 +1,59 @@
 -- ============================================================================
--- Trabajo Práctico Unidad 5 - Parte D: Anonimización de Datos y Verificación
+-- Trabajo Práctico Unidad 5 - Parte D: Anonimización de usuario y verificación
 -- Script: usuario_anon.sql
 -- Integrantes: Pamela Chirino, Lucas Agüero, Mayra Mulé
 -- ============================================================================
---
--- NOTA DE ADAPTACIÓN: la consigna pide agrupar por "rol" y "mes de alta".
--- El esquema real de Food Store no tiene una tabla "usuario" genérica (se usa
--- "cliente", ver nota en simulacro_incidente.sql) ni una columna de fecha de
--- alta en cliente. Como proxy razonable y verificable se usa el mes del
--- PRIMER PEDIDO de cada cliente (MIN(pedido.fecha)) como "mes de alta" --
--- es el dato más cercano a "cuándo empezó a operar" que el modelo real
--- registra. Un cliente sin pedidos queda con mes_alta = NULL (se documenta
--- como caso borde, no se descarta).
--- El "rol" sigue el mismo criterio sintético ya usado en la Clase 2
--- (alternancia determinista por id_cliente), documentado también en
--- BITACORA.md.
+-- Nota de adaptación: la consigna genérica habla de anonimizar la tabla
+-- "usuario". Food Store no tenía originalmente una tabla de usuarios de
+-- aplicación (solo "cliente", sin rol ni credenciales); se construyó
+-- "usuario" como parte de la Parte A/C de esta misma Unidad 5, para poder
+-- usar fn_autenticar y simular el incidente de la Parte C. Esta parte D
+-- anonimiza esa tabla.
 -- ============================================================================
 
--- 1. Construcción / actualización de usuario_anon con datos sintéticos
---    deterministas, incluyendo el mes de alta (proxy: primer pedido)
+-- 1. Construcción de la tabla usuario_anon con datos sintéticos deterministas
 DROP TABLE IF EXISTS usuario_anon CASCADE;
 
 CREATE TABLE usuario_anon AS
 SELECT
-    c.id_cliente AS id_usuario,
-    'Usuario_' || c.id_cliente AS usuario_anonimizado,
-    'user_' || md5(c.email) || '@anon.local' AS email_anonimizado,
-    CASE
-        WHEN c.id_cliente % 2 = 0 THEN 'rol_app_lectura'
-        ELSE 'rol_app_escritura'
-    END AS rol,
-    DATE_TRUNC('month', MIN(p.fecha))::date AS mes_alta
-FROM cliente c
-LEFT JOIN pedido p ON p.id_cliente = c.id_cliente
-GROUP BY c.id_cliente, c.email;
+    id_usuario,
+    -- Anonimización determinista del nombre de usuario (no reversible)
+    'usuario_' || md5(nombre_usuario) AS nombre_usuario_anonimizado,
+    -- Nombre completo reemplazado por un rótulo genérico con el id
+    'Usuario #' || id_usuario AS nombre_completo_anonimizado,
+    -- Email anonimizado preservando dominio genérico (no el real)
+    'user_' || md5(email) || '@anon.local' AS email_anonimizado,
+    rol,
+    activo,
+    fecha_alta
+FROM usuario;
 
--- 2. Consulta de agregación sobre la tabla ANONIMIZADA (usuario_anon):
---    cantidad de usuarios por rol y por mes de alta
+-- 2. Consulta de agregación sobre la tabla ANONIMIZADA (usuario_anon)
+--    Cantidad de usuarios por rol y por mes de alta
 SELECT
     rol,
-    mes_alta,
+    date_trunc('month', fecha_alta)::date AS mes_alta,
     COUNT(*) AS total_usuarios
 FROM usuario_anon
-GROUP BY rol, mes_alta
-ORDER BY rol, mes_alta;
+GROUP BY rol, date_trunc('month', fecha_alta)
+ORDER BY mes_alta, rol;
 
--- 3. Consulta equivalente de agregación sobre la tabla REAL (cliente + pedido)
+-- 3. Consulta equivalente de agregación sobre la tabla REAL (usuario)
 SELECT
-    CASE
-        WHEN c.id_cliente % 2 = 0 THEN 'rol_app_lectura'
-        ELSE 'rol_app_escritura'
-    END AS rol,
-    DATE_TRUNC('month', MIN(p.fecha))::date AS mes_alta,
+    rol,
+    date_trunc('month', fecha_alta)::date AS mes_alta,
     COUNT(*) AS total_usuarios
-FROM cliente c
-LEFT JOIN pedido p ON p.id_cliente = c.id_cliente
-GROUP BY
-    CASE
-        WHEN c.id_cliente % 2 = 0 THEN 'rol_app_lectura'
-        ELSE 'rol_app_escritura'
-    END,
-    c.id_cliente
-ORDER BY rol, mes_alta;
+FROM usuario
+GROUP BY rol, date_trunc('month', fecha_alta)
+ORDER BY mes_alta, rol;
 
--- Nota: la consulta del punto 3 muestra el detalle por cliente (una fila por
--- combinación real) para poder inspeccionarla; la agregación final
--- comparable con el punto 2 se arma en la sección 4.
-
--- ============================================================================
--- 4. Verificación de equivalencia (ambos EXCEPT deben retornar 0 filas)
--- ============================================================================
-WITH real_por_cliente AS (
-    SELECT
-        c.id_cliente,
-        CASE WHEN c.id_cliente % 2 = 0 THEN 'rol_app_lectura' ELSE 'rol_app_escritura' END AS rol,
-        DATE_TRUNC('month', MIN(p.fecha))::date AS mes_alta
-    FROM cliente c
-    LEFT JOIN pedido p ON p.id_cliente = c.id_cliente
-    GROUP BY c.id_cliente
-),
-real_agregado AS (
-    SELECT rol, mes_alta, COUNT(*) AS total_usuarios
-    FROM real_por_cliente
-    GROUP BY rol, mes_alta
-),
-anon_agregado AS (
-    SELECT rol, mes_alta, COUNT(*) AS total_usuarios
-    FROM usuario_anon
-    GROUP BY rol, mes_alta
+-- 4. Verificación de equivalencia total (ambos EXCEPT deben dar 0 filas)
+(
+    SELECT rol, date_trunc('month', fecha_alta)::date AS mes_alta, COUNT(*) AS total_usuarios
+    FROM usuario_anon GROUP BY rol, date_trunc('month', fecha_alta)
 )
-(SELECT * FROM anon_agregado EXCEPT SELECT * FROM real_agregado)
-UNION ALL
-(SELECT * FROM real_agregado EXCEPT SELECT * FROM anon_agregado);
--- 0 filas => equivalencia confirmada en ambas direcciones
+EXCEPT
+(
+    SELECT rol, date_trunc('month', fecha_alta)::date AS mes_alta, COUNT(*) AS total_usuarios
+    FROM usuario GROUP BY rol, date_trunc('month', fecha_alta)
+);

@@ -1,18 +1,3 @@
-NOTA: esta base de verificación acumula objetos de TPs anteriores (TP4 FNBC:
-control_lote_almacen_legacy, etc.) porque se usó el mismo entorno de prueba
-para no rearmar el esquema completo de Food Store en cada corrida. Los
-objetos relevantes para esta Unidad 5 son: cliente, producto, categoria,
-pedido, pedido_producto, credencial_acceso, intento_login, log_auditoria y
-usuario_anon.
-
-Dato a destacar: credencial_acceso, intento_login, log_auditoria y
-usuario_anon se crearon DESPUÉS de correr roles.sql, y ya aparecen en la
-tabla con los privilegios correctos para rol_app_lectura / rol_app_escritura
-/ rol_reportes -- eso confirma que el ALTER DEFAULT PRIVILEGES del punto 7
-de roles.sql funciona: las tablas futuras heredan la política sin necesidad
-de un GRANT manual adicional.
-
-=== \du (roles del sistema) ===
                                  List of roles
      Role name     |                         Attributes                         
 -------------------+------------------------------------------------------------
@@ -25,68 +10,45 @@ de un GRANT manual adicional.
  rol_soporte       | Cannot login
 
 
-=== information_schema.role_table_grants (roles de Food Store U5) ===
-      grantee      |         table_name          | privilege_type 
--------------------+-----------------------------+----------------
- rol_app_escritura | cliente                     | INSERT
- rol_app_escritura | cliente                     | SELECT
- rol_app_escritura | cliente                     | UPDATE
- rol_app_escritura | credencial_acceso           | INSERT
- rol_app_escritura | credencial_acceso           | SELECT
- rol_app_escritura | credencial_acceso           | UPDATE
- rol_app_escritura | intento_login               | INSERT
- rol_app_escritura | intento_login               | SELECT
- rol_app_escritura | intento_login               | UPDATE
- rol_app_escritura | log_auditoria               | INSERT
- rol_app_escritura | log_auditoria               | SELECT
- rol_app_escritura | log_auditoria               | UPDATE
- rol_app_escritura | pedido                      | INSERT
- rol_app_escritura | pedido                      | SELECT
- rol_app_escritura | pedido                      | UPDATE
- rol_app_escritura | pedido_producto             | INSERT
- rol_app_escritura | pedido_producto             | SELECT
- rol_app_escritura | pedido_producto             | UPDATE
- rol_app_escritura | usuario_anon                | INSERT
- rol_app_escritura | usuario_anon                | SELECT
- rol_app_escritura | usuario_anon                | UPDATE
- rol_app_lectura   | categoria                   | SELECT
- rol_app_lectura   | credencial_acceso           | SELECT
- rol_app_lectura   | intento_login               | SELECT
- rol_app_lectura   | log_auditoria               | SELECT
- rol_app_lectura   | producto                    | SELECT
- rol_app_lectura   | usuario_anon                | SELECT
- rol_reportes      | categoria                   | SELECT
- rol_reportes      | cliente                     | SELECT
- rol_reportes      | control_lote_almacen_legacy | SELECT
- rol_reportes      | control_lote_fnbc           | SELECT
- rol_reportes      | credencial_acceso           | SELECT
- rol_reportes      | intento_login               | SELECT
- rol_reportes      | log_auditoria               | SELECT
- rol_reportes      | pedido                      | SELECT
- rol_reportes      | pedido_producto             | SELECT
- rol_reportes      | producto                    | SELECT
- rol_reportes      | responsable_deposito_fnbc   | SELECT
- rol_reportes      | usuario_anon                | SELECT
- rol_reportes      | v_control_lote_almacen_fnbc | SELECT
- rol_soporte       | categoria                   | SELECT
- rol_soporte       | cliente                     | SELECT
- rol_soporte       | control_lote_almacen_legacy | SELECT
- rol_soporte       | control_lote_fnbc           | SELECT
- rol_soporte       | pedido                      | SELECT
- rol_soporte       | pedido_producto             | SELECT
- rol_soporte       | producto                    | SELECT
- rol_soporte       | responsable_deposito_fnbc   | SELECT
- rol_soporte       | v_control_lote_almacen_fnbc | SELECT
-(49 rows)
-
-
-=== Permiso a nivel de columna sobre cliente (rol_app_lectura) ===
-     grantee     | table_name | column_name | privilege_type 
------------------+------------+-------------+----------------
- rol_app_lectura | cliente    | apellido    | SELECT
- rol_app_lectura | cliente    | email       | SELECT
- rol_app_lectura | cliente    | id_cliente  | SELECT
- rol_app_lectura | cliente    | nombre      | SELECT
- rol_app_lectura | cliente    | telefono    | SELECT
-(5 rows)
+=== information_schema.role_table_grants (roles de grupo) ===
+      grantee      |    table_name     | privilege_type 
+-------------------+-------------------+----------------
+ rol_app_escritura | cliente           | INSERT
+ rol_app_escritura | cliente           | SELECT
+ rol_app_escritura | cliente           | UPDATE
+ rol_app_escritura | log_auditoria     | INSERT
+ rol_app_escritura | log_auditoria     | SELECT
+ rol_app_escritura | log_auditoria     | UPDATE
+ rol_app_escritura | pedido            | INSERT
+ rol_app_escritura | pedido            | SELECT
+ rol_app_escritura | pedido            | UPDATE
+ rol_app_escritura | pedido_producto   | INSERT
+ rol_app_escritura | pedido_producto   | SELECT
+ rol_app_escritura | pedido_producto   | UPDATE
+ rol_app_escritura | usuario_anon      | INSERT
+ rol_app_escritura | usuario_anon      | SELECT
+ rol_app_escritura | usuario_anon      | UPDATE
+ rol_app_lectura   | categoria         | SELECT
+ rol_app_lectura   | log_auditoria     | SELECT
+ rol_app_lectura   | producto          | SELECT
+ rol_app_lectura   | usuario_anon      | SELECT
+ rol_reportes      | categoria         | SELECT
+ rol_reportes      | cliente           | SELECT
+ rol_reportes      | log_auditoria     | SELECT
+ rol_reportes      | log_autenticacion | SELECT
+ rol_reportes      | pedido            | SELECT
+ rol_reportes      | pedido_producto   | SELECT
+ rol_reportes      | producto          | SELECT
+ rol_reportes      | usuario           | SELECT
+ rol_reportes      | usuario_anon      | SELECT
+ rol_soporte       | categoria         | SELECT
+ rol_soporte       | cliente           | SELECT
+ rol_soporte       | log_auditoria     | SELECT
+ rol_soporte       | log_autenticacion | SELECT
+ rol_soporte       | pedido            | SELECT
+ rol_soporte       | pedido_producto   | SELECT
+ rol_soporte       | producto          | SELECT
+ rol_soporte       | usuario           | SELECT
+ rol_soporte       | usuario_anon      | SELECT
+(37 rows)
 
