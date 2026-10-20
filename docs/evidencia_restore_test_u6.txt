@@ -1,5 +1,6 @@
-Usando respaldo: backups/foodstore_2026-10-20_2027.dump
-Antigüedad del respaldo (RPO observado): 13s
+$ bash scripts/restore_test.sh
+Usando respaldo: backups/foodstore_2026-10-20_2041.dump
+Antigüedad del respaldo (RPO observado): 2s
 
 === Validación mínima (Parte 4) ===
       tabla      | filas 
@@ -23,5 +24,5 @@ Antigüedad del respaldo (RPO observado): 13s
 
 
 === Resultado ===
-RTO observado (createdb + pg_restore + validaciones): .598880325s
-RPO observado (antigüedad del respaldo usado): 13s
+RTO observado (createdb + pg_restore + validaciones): .705914972s
+RPO observado (antigüedad del respaldo usado): 2s
