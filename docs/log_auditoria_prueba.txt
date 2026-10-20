@@ -1,0 +1,14 @@
+2026-10-20 03:04:34.585 UTC [285] user=postgres db=foodstore_test host=127.0.0.1 LOG:  connection authorized: user=postgres database=foodstore_test application_name=psql SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+2026-10-20 03:04:34.586 UTC [285] user=postgres db=foodstore_test host=127.0.0.1 LOG:  statement: INSERT INTO categoria (nombre) VALUES ('Prueba Auditoria U5') ON CONFLICT DO NOTHING;
+2026-10-20 03:04:34.589 UTC [285] user=postgres db=foodstore_test host=127.0.0.1 LOG:  disconnection: session time: 0:00:00.026 user=postgres database=foodstore_test host=127.0.0.1 port=51350
+2026-10-20 03:04:34.632 UTC [287] user=[unknown] db=[unknown] host=127.0.0.1 LOG:  connection received: host=127.0.0.1 port=51358
+2026-10-20 03:04:34.648 UTC [287] user=postgres db=foodstore_test host=127.0.0.1 LOG:  connection authenticated: identity="postgres" method=scram-sha-256 (/etc/postgresql/16/main/pg_hba.conf:125)
+2026-10-20 03:04:34.648 UTC [287] user=postgres db=foodstore_test host=127.0.0.1 LOG:  connection authorized: user=postgres database=foodstore_test application_name=psql SSL enabled (protocol=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384, bits=256)
+2026-10-20 03:04:34.650 UTC [287] user=postgres db=foodstore_test host=127.0.0.1 LOG:  statement: UPDATE cliente SET telefono = '2610009999' WHERE id_cliente = 2;
+2026-10-20 03:04:34.654 UTC [287] user=postgres db=foodstore_test host=127.0.0.1 LOG:  disconnection: session time: 0:00:00.022 user=postgres database=foodstore_test host=127.0.0.1 port=51358
+2026-10-20 03:04:34.689 UTC [289] user=[unknown] db=[unknown] host=127.0.0.1 LOG:  connection received: host=127.0.0.1 port=51362
+2026-10-20 03:04:34.704 UTC [289] user=app_web db=foodstore_test host=127.0.0.1 FATAL:  password authentication failed for user "app_web"
+2026-10-20 03:04:34.704 UTC [289] user=app_web db=foodstore_test host=127.0.0.1 DETAIL:  Connection matched file "/etc/postgresql/16/main/pg_hba.conf" line 125: "host    all             all             127.0.0.1/32            scram-sha-256"
+2026-10-20 03:04:34.705 UTC [290] user=[unknown] db=[unknown] host=127.0.0.1 LOG:  connection received: host=127.0.0.1 port=51364
+2026-10-20 03:04:34.714 UTC [290] user=app_web db=foodstore_test host=127.0.0.1 FATAL:  password authentication failed for user "app_web"
+2026-10-20 03:04:34.714 UTC [290] user=app_web db=foodstore_test host=127.0.0.1 DETAIL:  Connection matched file "/etc/postgresql/16/main/pg_hba.conf" line 125: "host    all             all             127.0.0.1/32            scram-sha-256"
