@@ -1,0 +1,27 @@
+Usando respaldo: backups/foodstore_2026-10-20_2027.dump
+Antigüedad del respaldo (RPO observado): 13s
+
+=== Validación mínima (Parte 4) ===
+      tabla      | filas 
+-----------------+-------
+ categoria       |    12
+ cliente         |  5002
+ producto        | 10003
+ pedido_producto | 50000
+ pedido          | 50000
+(5 rows)
+
+ productos_invalidos 
+---------------------
+                   0
+(1 row)
+
+ detalles_invalidos 
+--------------------
+                  0
+(1 row)
+
+
+=== Resultado ===
+RTO observado (createdb + pg_restore + validaciones): .598880325s
+RPO observado (antigüedad del respaldo usado): 13s
