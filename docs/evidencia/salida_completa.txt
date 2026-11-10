@@ -1,0 +1,200 @@
+
+
+==================== 0. Servidor de PRUEBAS (PostgreSQL) desde cero ====================
+
+
+==================== 0b. Control del servidor ANTES ====================
+ cant_pedidos | cant_detalles | stock_total |           huella_stock           
+--------------+---------------+-------------+----------------------------------
+            2 |             5 |         190 | aec8e1a84aeb17ff5a1c7f1f9b251203
+(1 row)
+
+
+
+==================== 1.b Esquema SQLite de la tablet ====================
+cola_sync          pedido_borrador    snapshot_servidor
+item_borrador      producto_cache   
+
+
+==================== 2.a Instantánea 1 (inicial) -> SQLite ====================
+-- instantánea exportada: snapshot_1_inicial.csv
+id,nombre,precio_centavos,stock,disponible,eliminado,fecha_snapshot
+1,Hamburguesa clásica,550000,30,t,f,2026-11-09 18:26:37
+2,Lomito completo,780000,15,t,f,2026-11-09 18:26:37
+3,Pizza muzzarella,690000,10,t,f,2026-11-09 18:26:37
+4,Empanada de carne,120000,40,t,f,2026-11-09 18:26:37
+5,Choripán,350000,25,t,f,2026-11-09 18:26:37
+6,Papas fritas,280000,20,t,f,2026-11-09 18:26:37
+7,Agua sin gas 500 ml,100000,50,t,f,2026-11-09 18:26:37
+8,Gaseosa 500 ml,150000,0,f,f,2026-11-09 18:26:37
+Instantánea cargada|8|2026-11-09 18:26:37
+
+
+==================== 1.c Pruebas: COMMIT/ROLLBACK, C1 y C7 ====================
+┌───────────┬──────────────────────────────────────┬───────┬──────────────────────┬───────────┐
+│  prueba   │               id_local               │ items │ total_centavos_visto │  estado   │
+├───────────┼──────────────────────────────────────┼───────┼──────────────────────┼───────────┤
+│ COMMIT ok │ b0b0b0b0-1111-4aaa-8aaa-000000000001 │ 2     │ 1470000              │ PENDIENTE │
+└───────────┴──────────────────────────────────────┴───────┴──────────────────────┴───────────┘
+┌──────────────────────────┬───────────────┐
+│         momento          │ borradores_99 │
+├──────────────────────────┼───────────────┤
+│ dentro de la transacción │ 1             │
+└──────────────────────────┴───────────────┘
+┌──────────────────────┬───────────────┐
+│       momento        │ borradores_99 │
+├──────────────────────┼───────────────┤
+│ después del ROLLBACK │ 0             │
+└──────────────────────┴───────────────┘
+┌──────┬────┬─────────────────────┬───────────┬─────────────┬─────────────────────┐
+│ caso │ id │       nombre        │  precio   │ stock_visto │     copiado_en      │
+├──────┼────┼─────────────────────┼───────────┼─────────────┼─────────────────────┤
+│ C1   │ 7  │ Agua sin gas 500 ml │ $ 1000.00 │ 50          │ 2026-11-09 18:26:37 │
+│ C1   │ 5  │ Choripán            │ $ 3500.00 │ 25          │ 2026-11-09 18:26:37 │
+│ C1   │ 4  │ Empanada de carne   │ $ 1200.00 │ 40          │ 2026-11-09 18:26:37 │
+│ C1   │ 1  │ Hamburguesa clásica │ $ 5500.00 │ 30          │ 2026-11-09 18:26:37 │
+│ C1   │ 2  │ Lomito completo     │ $ 7800.00 │ 15          │ 2026-11-09 18:26:37 │
+│ C1   │ 6  │ Papas fritas        │ $ 2800.00 │ 20          │ 2026-11-09 18:26:37 │
+│ C1   │ 3  │ Pizza muzzarella    │ $ 6900.00 │ 10          │ 2026-11-09 18:26:37 │
+└──────┴────┴─────────────────────┴───────────┴─────────────┴─────────────────────┘
+┌──────────┬────────────┬───────┬─────────────┐
+│ momento  │ borradores │ items │ solicitudes │
+├──────────┼────────────┼───────┼─────────────┤
+│ C7 antes │ 1          │ 2     │ 1           │
+└──────────┴────────────┴───────┴─────────────┘
+Runtime error near line 70: CHECK constraint failed: cantidad > 0 (19)
+Runtime error near line 77: FOREIGN KEY constraint failed (19)
+Runtime error near line 81: CHECK constraint failed: forma_pago IN ('EFECTIVO', 'TARJETA', 'TRANSFERENCIA') (19)
+┌────────────┬────────────┬───────┬─────────────┐
+│  momento   │ borradores │ items │ solicitudes │
+├────────────┼────────────┼───────┼─────────────┤
+│ C7 después │ 1          │ 2     │ 1           │
+└────────────┴────────────┴───────┴─────────────┘
+
+
+==================== 2.c Paso 1: borradores C2-C5 (con precios de la instantánea 1) ====================
+┌──────────────────┬─────────────┬─────────────────────┬──────────┬───────────────────────┬──────────────────────────────────────┬───────────┐
+│     usuario      │ producto_id │       nombre        │ cantidad │ precio_centavos_visto │            solicitud_uuid            │  estado   │
+├──────────────────┼─────────────┼─────────────────────┼──────────┼───────────────────────┼──────────────────────────────────────┼───────────┤
+│ cliente_feria_c2 │ 1           │ Hamburguesa clásica │ 2        │ 550000                │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c2 │ PENDIENTE │
+│ cliente_feria_c3 │ 4           │ Empanada de carne   │ 50       │ 120000                │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c3 │ PENDIENTE │
+│ cliente_feria_c4 │ 5           │ Choripán            │ 1        │ 350000                │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c4 │ PENDIENTE │
+│ cliente_feria_c5 │ 6           │ Papas fritas        │ 1        │ 280000                │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c5 │ PENDIENTE │
+│ cliente_feria_c5 │ 7           │ Agua sin gas 500 ml │ 3        │ 100000                │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c5 │ PENDIENTE │
+└──────────────────┴─────────────┴─────────────────────┴──────────┴───────────────────────┴──────────────────────────────────────┴───────────┘
+
+
+==================== 2.c Paso 2: cambios en el servidor (C2 sube precio, C4 baja lógica) ====================
+ id |       nombre        | precio  | stock | disponible | eliminado 
+----+---------------------+---------+-------+------------+-----------
+  1 | Hamburguesa clásica | 6000.00 |    30 | t          | f
+  4 | Empanada de carne   | 1200.00 |    40 | t          | f
+  5 | Choripán            | 3500.00 |    25 | f          | t
+(3 rows)
+
+
+
+==================== 2.c Paso 3: instantánea 2 -> SQLite y semáforo ====================
+-- instantánea exportada: snapshot_2_casos.csv
+id,nombre,precio_centavos,stock,disponible,eliminado,fecha_snapshot
+1,Hamburguesa clásica,600000,30,t,f,2026-11-09 18:26:37
+2,Lomito completo,780000,15,t,f,2026-11-09 18:26:37
+3,Pizza muzzarella,690000,10,t,f,2026-11-09 18:26:37
+4,Empanada de carne,120000,40,t,f,2026-11-09 18:26:37
+5,Choripán,350000,25,f,t,2026-11-09 18:26:37
+6,Papas fritas,280000,20,t,f,2026-11-09 18:26:37
+7,Agua sin gas 500 ml,100000,50,t,f,2026-11-09 18:26:37
+8,Gaseosa 500 ml,150000,0,f,f,2026-11-09 18:26:37
+Instantánea cargada|8|2026-11-09 18:26:37
+┌─────────────────────────────┐
+│ solicitudes_evaluadas_ahora │
+├─────────────────────────────┤
+│ 5                           │
+└─────────────────────────────┘
+┌──────────┬──────────────────────────────────────┬──────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────────────┐
+│ semaforo │            solicitud_uuid            │               id_local               │      estado       │                        motivo                        │
+├──────────┼──────────────────────────────────────┼──────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────────────┤
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-000000000001 │ b0b0b0b0-1111-4aaa-8aaa-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+│ AMARILLO │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c2 │ c2c2c2c2-0000-4ddd-8ddd-000000000001 │ CONFLICTO         │ producto 1 cambió de precio (550000 -> 600000 cent.) │
+│ ROJO     │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c3 │ c3c3c3c3-0000-4ddd-8ddd-000000000001 │ RECHAZADO         │ producto 4 sin stock (pide 50, hay 40)               │
+│ ROJO     │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c4 │ c4c4c4c4-0000-4ddd-8ddd-000000000001 │ RECHAZADO         │ producto 5 dado de baja                              │
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c5 │ c5c5c5c5-0000-4ddd-8ddd-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+└──────────┴──────────────────────────────────────┴──────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────────────┘
+
+
+==================== C2: el cliente acepta el precio nuevo -> solicitud nueva -> semáforo ====================
+┌─────────────────────────────┐
+│ solicitudes_evaluadas_ahora │
+├─────────────────────────────┤
+│ 1                           │
+└─────────────────────────────┘
+┌──────────┬──────────────────────────────────────┬──────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────────────┐
+│ semaforo │            solicitud_uuid            │               id_local               │      estado       │                        motivo                        │
+├──────────┼──────────────────────────────────────┼──────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────────────┤
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-000000000001 │ b0b0b0b0-1111-4aaa-8aaa-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+│ AMARILLO │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c2 │ c2c2c2c2-0000-4ddd-8ddd-000000000001 │ CONFLICTO         │ producto 1 cambió de precio (550000 -> 600000 cent.) │
+│ ROJO     │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c3 │ c3c3c3c3-0000-4ddd-8ddd-000000000001 │ RECHAZADO         │ producto 4 sin stock (pide 50, hay 40)               │
+│ ROJO     │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c4 │ c4c4c4c4-0000-4ddd-8ddd-000000000001 │ RECHAZADO         │ producto 5 dado de baja                              │
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c5 │ c5c5c5c5-0000-4ddd-8ddd-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-0000000002c2 │ c2c2c2c2-0000-4ddd-8ddd-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+└──────────┴──────────────────────────────────────┴──────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────────────┘
+
+
+==================== C4: catálogo recargado (la lápida queda) ====================
+┌──────────────────┬────┬─────────────────────┐
+│      vista       │ id │       nombre        │
+├──────────────────┼────┼─────────────────────┤
+│ catálogo visible │ 1  │ Hamburguesa clásica │
+│ catálogo visible │ 2  │ Lomito completo     │
+│ catálogo visible │ 3  │ Pizza muzzarella    │
+│ catálogo visible │ 4  │ Empanada de carne   │
+│ catálogo visible │ 6  │ Papas fritas        │
+│ catálogo visible │ 7  │ Agua sin gas 500 ml │
+└──────────────────┴────┴─────────────────────┘
+┌────────────────────────┬────┬──────────┬────────────┬───────────┬─────────────────────┐
+│         vista          │ id │  nombre  │ disponible │ eliminado │     copiado_en      │
+├────────────────────────┼────┼──────────┼────────────┼───────────┼─────────────────────┤
+│ fila en producto_cache │ 5  │ Choripán │ 0          │ 1         │ 2026-11-09 18:26:37 │
+└────────────────────────┴────┴──────────┴────────────┴───────────┴─────────────────────┘
+
+
+==================== C6: reenviar la misma solicitud + repetir el semáforo ====================
+┌─────────┬─────────────┐
+│ momento │ solicitudes │
+├─────────┼─────────────┤
+│ antes   │ 6           │
+└─────────┴─────────────┘
+Runtime error near line 11: UNIQUE constraint failed: cola_sync.solicitud_uuid (19)
+┌─────────┬─────────────┐
+│ momento │ solicitudes │
+├─────────┼─────────────┤
+│ después │ 6           │
+└─────────┴─────────────┘
+┌──────────────────────────────────────┬───────────────────┬─────────────────────┐
+│            solicitud_uuid            │      estado       │     evaluada_en     │
+├──────────────────────────────────────┼───────────────────┼─────────────────────┤
+│ 5a5a5a5a-0000-4bbb-9bbb-0000000000c5 │ SIMULADO_APROBADO │ 2026-11-09 21:26:37 │
+└──────────────────────────────────────┴───────────────────┴─────────────────────┘
+┌─────────────────────────────┐
+│ solicitudes_evaluadas_ahora │
+├─────────────────────────────┤
+│ 0                           │
+└─────────────────────────────┘
+┌──────────┬──────────────────────────────────────┬──────────────────────────────────────┬───────────────────┬──────────────────────────────────────────────────────┐
+│ semaforo │            solicitud_uuid            │               id_local               │      estado       │                        motivo                        │
+├──────────┼──────────────────────────────────────┼──────────────────────────────────────┼───────────────────┼──────────────────────────────────────────────────────┤
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-000000000001 │ b0b0b0b0-1111-4aaa-8aaa-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+│ AMARILLO │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c2 │ c2c2c2c2-0000-4ddd-8ddd-000000000001 │ CONFLICTO         │ producto 1 cambió de precio (550000 -> 600000 cent.) │
+│ ROJO     │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c3 │ c3c3c3c3-0000-4ddd-8ddd-000000000001 │ RECHAZADO         │ producto 4 sin stock (pide 50, hay 40)               │
+│ ROJO     │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c4 │ c4c4c4c4-0000-4ddd-8ddd-000000000001 │ RECHAZADO         │ producto 5 dado de baja                              │
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-0000000000c5 │ c5c5c5c5-0000-4ddd-8ddd-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+│ VERDE    │ 5a5a5a5a-0000-4bbb-9bbb-0000000002c2 │ c2c2c2c2-0000-4ddd-8ddd-000000000001 │ SIMULADO_APROBADO │ coincide con la instantánea del 2026-11-09 18:26:37  │
+└──────────┴──────────────────────────────────────┴──────────────────────────────────────┴───────────────────┴──────────────────────────────────────────────────────┘
+
+
+==================== Control del servidor DESPUÉS (pedidos y stock iguales) ====================
+ cant_pedidos | cant_detalles | stock_total |           huella_stock           
+--------------+---------------+-------------+----------------------------------
+            2 |             5 |         190 | aec8e1a84aeb17ff5a1c7f1f9b251203
+(1 row)
+

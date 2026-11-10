@@ -1,0 +1,9 @@
+id,nombre,precio_centavos,stock,disponible,eliminado,fecha_snapshot
+1,Hamburguesa clásica,550000,30,t,f,2026-11-09 18:26:37
+2,Lomito completo,780000,15,t,f,2026-11-09 18:26:37
+3,Pizza muzzarella,690000,10,t,f,2026-11-09 18:26:37
+4,Empanada de carne,120000,40,t,f,2026-11-09 18:26:37
+5,Choripán,350000,25,t,f,2026-11-09 18:26:37
+6,Papas fritas,280000,20,t,f,2026-11-09 18:26:37
+7,Agua sin gas 500 ml,100000,50,t,f,2026-11-09 18:26:37
+8,Gaseosa 500 ml,150000,0,f,f,2026-11-09 18:26:37

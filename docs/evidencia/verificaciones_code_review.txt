@@ -1,0 +1,39 @@
+== H1 · PRAGMA foreign_keys es por conexión ==
+0
+(conexión nueva sin el PRAGMA -> 0; entonces un INSERT con producto 999 PASA:)
+filas con producto 999: 1
+(con PRAGMA foreign_keys=ON al inicio:)
+Error: stepping, FOREIGN KEY constraint failed (19)
+
+== H2 · Semáforo ingenuo con LEFT JOIN: producto que ya no está en la instantánea ==
+version ingenua: SIMULADO_APROBADO
+│ ROJO     │ h2h2h2h2-0000-4000-8000-000000000001 │ b0b0b0b0-1111-4aaa-8aaa-000000000001 │ RECHAZADO         │ producto 2 no existe en el servidor                  │
+
+== H3 · Precio en REAL en vez de centavos ==
+0.1 + 0.2 = 0.3 en REAL -> 0
+10 + 20 = 30 en centavos -> 1
+3 x 1999.99 en REAL -> 5999.97
+
+== H4 · (precio * 100)::INTEGER en la vista ¿pierde centavos? ==
+   a    | b | entrada_3_decimales 
+--------+---+---------------------
+ 549999 | 7 |                1.01
+(1 row)
+
+
+== H5 · Trigger que descuente stock_visto al agregar un ítem ==
+No se implementa (ver informe). Comprobación de que la tablet no toca stock en ningún script:
+  ningún UPDATE/DELETE de stock en los scripts de la tablet
+
+== H6 · Respaldo y restauración (Unidad 6): ¿la vista v_snapshot_movil vuelve? ==
+NOTICE:  database "foodstore_restore" does not exist, skipping
+ productos_en_vista 
+--------------------
+                  8
+(1 row)
+
+pg_restore: error: could not execute query: ERROR:  relation "public.categoria" does not exist
+Command was: ALTER TABLE ONLY public.producto
+    ADD CONSTRAINT producto_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categoria(id);
+ERROR:  relation "v_snapshot_movil" does not exist
+LINE 1: SELECT count(*) FROM v_snapshot_movil;
