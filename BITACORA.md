@@ -1,11 +1,21 @@
-# Bitácora de Uso de IA — Unidad 5 (Trabajo Práctico Food Store)
+# Bitácora de Uso de IA — Unidades 4 a 8 (Segunda Entrega TPI Food Store)
 
 - **Integrantes del Equipo**: Pamela Chirino, Lucas Agüero, Mayra Mulé
-- **Fecha de Cierre**: Octubre de 2026
+- **Fecha de Cierre**: Noviembre de 2026
+- **Alcance**: consolida el registro de interacciones con IA de las Unidades 4, 5, 6, 7 y 8. El detalle de la Unidad 5 (Partes A-D) ya estaba documentado acá; se agregan el resto. Las declaraciones formales de uso de IA (DUIA) de cada unidad están en `duia.md`, `docs/DUIA_TP8.md` y, para la Unidad 7, en `informe_u7.pdf` del repositorio `nosql-mongo`.
 
 ---
 
-## 1. Registro de interacciones y validación (Partes A a D)
+## Unidad 4 — Normalización avanzada y redundancia
+
+| Prompt enviado a la IA | Respuesta relevante recibida (resumida) | Validación o corrección humana aplicada |
+|---|---|---|
+| Analizar las dependencias funcionales de `control_lote_almacen` y proponer la descomposición a FNBC. | Identificó correctamente DF1 (`{lote_id, deposito_id} → {responsable_control_id}`) y DF2 (`{responsable_control_id} → {deposito_id}`, la que rompe FNBC), y propuso la descomposición en `responsable_deposito_fnbc` + `control_lote_fnbc` con vista de compatibilidad. | Se verificaron las clausuras y claves candidatas a mano antes de aceptar la descomposición. Se agregó, además de lo propuesto por la IA, la verificación de equivalencia con `EXCEPT` cruzado (no estaba en la propuesta original) y el plan de reversión explícito en `specs/spec_migracion_fnbc.md`, por ser obligatorio según la consigna. |
+| Proponer un caso de desnormalización controlada para un panel de reportes lento. | Sugirió una vista materializada con índice único sobre `(fecha, categoria)` para `REFRESH CONCURRENTLY`. | Se midió el plan de ejecución antes y después (`EXPLAIN ANALYZE`) en vez de aceptar la mejora como afirmada: el costo bajó de ~1286 a ~37 y el tiempo real de ~1,63 ms a ~0,25 ms, confirmando la propuesta con evidencia real. |
+
+## Unidad 5 — Administración y seguridad
+
+### Registro de interacciones y validación (Partes A a D)
 
 | Prompt enviado a la IA | Respuesta relevante recibida (resumida) | Validación o corrección humana aplicada |
 |---|---|---|
@@ -19,10 +29,32 @@
 
 ---
 
-## 2. Caso más significativo de error de la IA
+### Caso más significativo de error de la IA (Unidad 5)
 
 El caso más significativo fue el del **Escenario 3 del simulacro de incidente original**: la IA generó un script que ejecutaba `UPDATE cliente ... ` bajo el rol `admin_datos` y lo documentó, tanto en el comentario del script como en el informe, como una "modificación autorizada" exitosa. Al verificar ese mismo script contra los permisos efectivamente definidos en `roles.sql` (`admin_datos` hereda `rol_soporte` y `rol_reportes`, ambos exclusivamente de lectura), la operación **falla con `permission denied`**. La IA generó una afirmación de éxito que su propio script, ejecutado contra su propio diseño de permisos, contradice. Se detectó al ejecutar el script contra una base de PostgreSQL real en vez de aceptar el resultado documentado sin correrlo — exactamente el tipo de validación humana que esta consigna pide practicar.
 
-## 3. Nota sobre el historial de Git
+### Nota sobre el historial de Git (Unidad 5)
 
 El repositorio original mezclaba partes de esta Unidad 5 con reconstrucciones hechas en una sesión de verificación posterior, sin ramas separadas por parte. Como mejora para futuros trabajos, se reitera la conveniencia de usar ramas (`feature/parte-a`, `feature/parte-b`, etc.) desde el inicio, integrando a la rama principal solo una vez verificado cada bloque — en vez de verificar y corregir todo al final, como ocurrió acá.
+
+## Unidad 6 — Mantenimiento
+
+| Prompt enviado a la IA | Respuesta relevante recibida (resumida) | Validación o corrección humana aplicada |
+|---|---|---|
+| Revisar `health_check.sql` y los scripts de respaldo entregados originalmente por el equipo. | Los scripts parecían correctos por lectura. | **Se detectó un bug real al ejecutar, no al leer**: `health_check.sql` usaba el literal `'food_store'` (con guion bajo) en vez de `'foodstore'` (nombre real de la base), rompiendo 1 consulta con error directo y dejando otra en silencio con 0 filas. Se corrigió y se agregó un "smoke test" que falla ruidosamente si el nombre de base no coincide. |
+| Armar el simulacro de restauración (RTO/RPO) y automatizarlo. | Generó `scripts/restore_test.sh` con `dropdb`+`createdb`+`pg_restore`+validaciones. | Se corrió contra datos reales con volumen representativo (~115.000 filas) varias veces, no se aceptó el tiempo estimado por la IA: el RTO (0,71 s) y el RPO (2 s) del informe final son los que esas corridas reales reportaron. |
+
+## Unidad 7 — NoSQL
+
+(Desarrollado en el repositorio separado `nosql-mongo`; detalle completo de prompts en `informe_u7.pdf` de ese repositorio.)
+
+| Prompt enviado a la IA | Respuesta relevante recibida (resumida) | Validación o corrección humana aplicada |
+|---|---|---|
+| Comparar PostgreSQL y MongoDB para el almacenamiento de pedidos de Food Store. | Afirmó que el modelo documental embebido "suele traducirse en lecturas más rápidas" al evitar *joins*, y que MongoDB no aplica integridad referencial por defecto. | Ambas afirmaciones se contrastaron con mediciones reales, no se aceptaron tal cual: la de integridad referencial se confirmó (inserción con `id_producto` inexistente aceptada por Mongo, rechazada por un trigger real en Postgres); la de velocidad de lectura **no se confirmó** a la escala probada (~1-2 ms en ambos motores con la conexión ya abierta). |
+
+## Unidad 8 — Bases de datos móviles e integración
+
+| Prompt enviado a la IA | Respuesta relevante recibida (resumida) | Validación o corrección humana aplicada |
+|---|---|---|
+| Especificar en Kiro el esquema SQLite de la tablet y su mecanismo de sincronización con el servidor. | Generó `docs/kiro_tp8/{requirements,design,tasks}.md` y los scripts de `movil/` (schema, carga de snapshot, semáforo, casos de conflicto). | Se verificó la regla de oro ("el móvil propone, el servidor dispone") revisando que ningún script de `movil/` modifique stock, y se corrieron los 4 casos de conflicto contra una base SQLite real. |
+| Hacer un code review final asistido por IA de todos los scripts de la cursada. | Encontró 6 hallazgos (H1-H6), entre ellos que `PRAGMA foreign_keys` es por conexión (si no se activa, una FK inválida pasa sin error) y que restaurar solo la tabla `producto` del respaldo de U6 rompe `v_snapshot_movil` por la FK a `categoria`. | Cada hallazgo se verificó ejecutándolo contra una base real, no se aceptó por lectura (`docs/evidencia/verificaciones_code_review.txt`). H5 (trigger de `stock_visto` propuesto por la IA) se **descartó**: implementarlo rompía la regla de oro de que la tablet no decide stock. |
